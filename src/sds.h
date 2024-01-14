@@ -40,6 +40,7 @@ extern const char *SDS_NOINIT;
 #include <stdarg.h>
 #include <stdint.h>
 
+// 简单 动态 字符串
 typedef char *sds;
 
 /* Note: sdshdr5 is never used, we just access the flags byte directly.
@@ -60,11 +61,16 @@ struct __attribute__ ((__packed__)) sdshdr16 {
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
     char buf[];
 };
+// __attribute__((__packed__)) 是一个 GNU C 扩展，用于告诉编译器不要在结构体中插入任何填充字节，以确保紧凑的内存布局。
+// 记录长度，杜绝了缓冲区溢出。
+// 惰性释放，减少重新分配的次数（使用记录将未使用的回收）
+// 预分配，多给一些空间，避免多次扩容。
+// 二进制安全，二进制安全（Binary Safety）是指一个系统或数据结构能够正确处理二进制数据，而不会在处理过程中受到特定字符或特殊字节的影响。
 struct __attribute__ ((__packed__)) sdshdr32 {
-    uint32_t len; /* used */
-    uint32_t alloc; /* excluding the header and null terminator */
-    unsigned char flags; /* 3 lsb of type, 5 unused bits */
-    char buf[];
+    uint32_t len;       // 用于表示字符串的长度（已使用的长度）
+    uint32_t alloc;     // 分配的内存大小（不包括头部和空终止符）
+    unsigned char flags; // 3 个最低有效位表示类型，5 个未使用的位
+    char buf[];         // 灵活数组成员，用于存储字符串数据
 };
 struct __attribute__ ((__packed__)) sdshdr64 {
     uint64_t len; /* used */
