@@ -101,31 +101,50 @@ static inline size_t sdsTypeMaxSize(char type) {
  * You can print the string with printf() as there is an implicit \0 at the
  * end of the string. However the string is binary safe and can contain
  * \0 characters in the middle, as the length is stored in the sds header. */
+/**
+ * 创建一个新的 SDS 字符串
+ *
+ * @param init 初始化数据，如果为 SDS_NOINIT，则不初始化数据；如果为 NULL，则用 0 填充初始化数据
+ * @param initlen 初始化数据的长度
+ * @param trymalloc 是否尝试使用 trymalloc 进行分配内存
+ * @return 新创建的 SDS 字符串
+ */
 sds _sdsnewlen(const void *init, size_t initlen, int trymalloc) {
-    void *sh;
-    sds s;
-    char type = sdsReqType(initlen);
-    /* Empty strings are usually created in order to append. Use type 8
-     * since type 5 is not good at this. */
+    void *sh;  // SDS 头部指针
+    sds s;     // SDS 字符串指针
+    char type = sdsReqType(initlen);  // 计算 SDS 类型
+    // 空字符串通常用于追加操作，因此使用类型 8，因为类型 5 不太适合此操作
     if (type == SDS_TYPE_5 && initlen == 0) type = SDS_TYPE_8;
-    int hdrlen = sdsHdrSize(type);
-    unsigned char *fp; /* flags pointer. */
-    size_t usable;
+    int hdrlen = sdsHdrSize(type);  // 计算 SDS 头部大小
+    unsigned char *fp;  // 标志位指针
+    size_t usable;  // 可用空间大小
 
-    assert(initlen + hdrlen + 1 > initlen); /* Catch size_t overflow */
-    sh = trymalloc?
-        s_trymalloc_usable(hdrlen+initlen+1, &usable) :
-        s_malloc_usable(hdrlen+initlen+1, &usable);
+    // 检查 size_t 是否会溢出
+    assert(initlen + hdrlen + 1 > initlen);
+
+    // 尝试使用 trymalloc 或 s_malloc_usable 分配内存
+    sh = trymalloc ?
+         s_trymalloc_usable(hdrlen+initlen+1, &usable) :
+         s_malloc_usable(hdrlen+initlen+1, &usable);
+
     if (sh == NULL) return NULL;
-    if (init==SDS_NOINIT)
+
+    // 如果初始化数据为 SDS_NOINIT，则将 init 设置为 NULL
+    if (init == SDS_NOINIT)
         init = NULL;
     else if (!init)
         memset(sh, 0, hdrlen+initlen+1);
-    s = (char*)sh+hdrlen;
-    fp = ((unsigned char*)s)-1;
-    usable = usable-hdrlen-1;
+
+    // 计算实际 SDS 字符串的指针位置
+    s = (char*)sh + hdrlen;
+    fp = ((unsigned char*)s) - 1;
+    usable = usable - hdrlen - 1;
+
+    // 如果可用空间大于当前 SDS 类型所能表示的最大大小，则限制可用空间大小
     if (usable > sdsTypeMaxSize(type))
         usable = sdsTypeMaxSize(type);
+
+    // 根据 SDS 类型进行不同的处理
     switch(type) {
         case SDS_TYPE_5: {
             *fp = type | (initlen << SDS_TYPE_BITS);

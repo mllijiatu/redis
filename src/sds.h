@@ -84,63 +84,118 @@ struct __attribute__ ((__packed__)) sdshdr64 {
 #define SDS_TYPE_16 2
 #define SDS_TYPE_32 3
 #define SDS_TYPE_64 4
+// 这行代码是一个宏定义，用于创建一个掩码（mask）以提取 Simple Dynamic String（SDS）中存储类型信息的标志位的部分。具体来说，SDS_TYPE_MASK 被定义为数字 7，它在二进制中的表示是 00000111。
+//
+//在 SDS 的实现中，标志位的低 3 位用于存储 SDS 类型信息。通过使用 SDS_TYPE_MASK，可以方便地将标志位中的 SDS 类型信息提取出来。
 #define SDS_TYPE_MASK 7
+/**
+ * 宏定义：SDS 字符串类型的标志位所占用的位数
+ * 这个宏定义表示 SDS 类型信息所占用的位数，具体为 3 位。在 SDS 实现中，类型信息存储在标志位的低 3 位中，通过这个宏定义可以方便地引用 SDS 类型的位数。
+ */
 #define SDS_TYPE_BITS 3
+// 这个宏定义用于声明一个 SDS 头部结构体的指针，并将指针初始化为指向 SDS 字符串起始位置之前的位置。T 是一个参数，用于指定 SDS 的类型（8、16、32、64）。
 #define SDS_HDR_VAR(T,s) struct sdshdr##T *sh = (void*)((s)-(sizeof(struct sdshdr##T)));
+// 这个宏定义用于返回一个指向 SDS 头部结构体的指针，同样根据 T 参数来选择不同的 SDS 类型。这个宏实际上是对宏（SDS_HDR_VAR）的简化，直接返回指针而不声明新的变量。
+//
+//这样的宏定义使得代码更具有通用性，能够方便地处理不同 SDS 类型的头部信息，同时也提高了代码的可读性和可维护性。
 #define SDS_HDR(T,s) ((struct sdshdr##T *)((s)-(sizeof(struct sdshdr##T))))
-#define SDS_TYPE_5_LEN(f) ((f)>>SDS_TYPE_BITS)
+/**
+ * 宏定义：计算 SDS_TYPE_5 类型的 SDS 字符串长度
+ *
+ * @param f SDS 字符串的标志位
+ * @return SDS 字符串的长度
+ */
+#define SDS_TYPE_5_LEN(f) ((f) >> SDS_TYPE_BITS)
 
+/**
+ * 获取 SDS 字符串的长度
+ *
+ * @param s SDS 字符串
+ * @return SDS 字符串的长度
+ */
+// inline 是一个关键字，用于告诉编译器尝试将函数内联展开，而不是按照常规的函数调用方式进行。这意味着编译器会尝试在调用该函数的地方直接插入函数的代码，而不是生成一个函数调用的指令。
+//
+//使用 inline 有助于减少函数调用的开销，因为它避免了函数调用的一些额外开销，如压栈、跳转等。函数内联展开可以提高程序的执行速度，特别是对于短小的函数或频繁调用的函数。
 static inline size_t sdslen(const sds s) {
+    // 从 SDS 字符串的头部获取存储的标志位
     unsigned char flags = s[-1];
-    switch(flags&SDS_TYPE_MASK) {
+
+    // 根据标志位的类型来决定如何计算字符串的长度
+    switch(flags & SDS_TYPE_MASK) {
         case SDS_TYPE_5:
+            // 对于 SDS_TYPE_5 类型，使用宏 SDS_TYPE_5_LEN 获取长度
             return SDS_TYPE_5_LEN(flags);
         case SDS_TYPE_8:
-            return SDS_HDR(8,s)->len;
+            // 对于 SDS_TYPE_8 类型，通过宏 SDS_HDR 获取头部信息，再获取长度
+            return SDS_HDR(8, s)->len;
         case SDS_TYPE_16:
-            return SDS_HDR(16,s)->len;
+            // 对于 SDS_TYPE_16 类型，通过宏 SDS_HDR 获取头部信息，再获取长度
+            return SDS_HDR(16, s)->len;
         case SDS_TYPE_32:
-            return SDS_HDR(32,s)->len;
+            // 对于 SDS_TYPE_32 类型，通过宏 SDS_HDR 获取头部信息，再获取长度
+            return SDS_HDR(32, s)->len;
         case SDS_TYPE_64:
-            return SDS_HDR(64,s)->len;
+            // 对于 SDS_TYPE_64 类型，通过宏 SDS_HDR 获取头部信息，再获取长度
+            return SDS_HDR(64, s)->len;
     }
+
+    // 默认返回 0，表示无效长度
     return 0;
 }
 
+
+/**
+ * 获取 SDS 字符串中剩余可用空间的大小
+ *
+ * @param s SDS 字符串
+ * @return 剩余可用空间的大小
+ */
 static inline size_t sdsavail(const sds s) {
+    // 从 SDS 字符串的头部获取存储的标志位
     unsigned char flags = s[-1];
-    switch(flags&SDS_TYPE_MASK) {
-        case SDS_TYPE_5: {
-            return 0;
-        }
-        case SDS_TYPE_8: {
-            SDS_HDR_VAR(8,s);
-            return sh->alloc - sh->len;
-        }
-        case SDS_TYPE_16: {
-            SDS_HDR_VAR(16,s);
-            return sh->alloc - sh->len;
-        }
-        case SDS_TYPE_32: {
-            SDS_HDR_VAR(32,s);
-            return sh->alloc - sh->len;
-        }
-        case SDS_TYPE_64: {
-            SDS_HDR_VAR(64,s);
-            return sh->alloc - sh->len;
-        }
+
+    // 根据标志位的类型来决定如何计算剩余可用空间的大小
+    switch(flags & SDS_TYPE_MASK) {
+        case SDS_TYPE_5:
+            // 对于 SDS_TYPE_5 类型，使用宏 SDS_TYPE_5_AVAIL 获取剩余可用空间的大小
+            return SDS_TYPE_5_AVAIL(flags);
+        case SDS_TYPE_8:
+            // 对于 SDS_TYPE_8 类型，通过宏 SDS_HDR 获取头部信息，再获取剩余可用空间的大小
+            return SDS_HDR(8, s)->alloc - SDS_HDR(8, s)->len;
+        case SDS_TYPE_16:
+            // 对于 SDS_TYPE_16 类型，通过宏 SDS_HDR 获取头部信息，再获取剩余可用空间的大小
+            return SDS_HDR(16, s)->alloc - SDS_HDR(16, s)->len;
+        case SDS_TYPE_32:
+            // 对于 SDS_TYPE_32 类型，通过宏 SDS_HDR 获取头部信息，再获取剩余可用空间的大小
+            return SDS_HDR(32, s)->alloc - SDS_HDR(32, s)->len;
+        case SDS_TYPE_64:
+            // 对于 SDS_TYPE_64 类型，通过宏 SDS_HDR 获取头部信息，再获取剩余可用空间的大小
+            return SDS_HDR(64, s)->alloc - SDS_HDR(64, s)->len;
     }
+
+    // 默认返回 0，表示无效大小
     return 0;
 }
 
+
+/**
+ * 设置 SDS 字符串的长度
+ *
+ * @param s SDS 字符串
+ * @param newlen 新的长度值
+ */
 static inline void sdssetlen(sds s, size_t newlen) {
+    // 从 SDS 字符串的头部获取存储的标志位
     unsigned char flags = s[-1];
-    switch(flags&SDS_TYPE_MASK) {
+
+    // 根据标志位的类型来决定如何设置新的长度
+    switch(flags & SDS_TYPE_MASK) {
         case SDS_TYPE_5:
-            {
-                unsigned char *fp = ((unsigned char*)s)-1;
-                *fp = SDS_TYPE_5 | (newlen << SDS_TYPE_BITS);
-            }
+        {
+            // 对于 SDS_TYPE_5 类型，通过指针运算获取标志位的地址，并更新长度信息
+            unsigned char *fp = ((unsigned char*)s) - 1;
+            *fp = SDS_TYPE_5 | (newlen << SDS_TYPE_BITS);
+        }
             break;
         case SDS_TYPE_8:
             SDS_HDR(8,s)->len = newlen;
@@ -157,15 +212,25 @@ static inline void sdssetlen(sds s, size_t newlen) {
     }
 }
 
+/**
+ * 增加 SDS 字符串的长度
+ *
+ * @param s SDS 字符串
+ * @param inc 增加的长度值
+ */
 static inline void sdsinclen(sds s, size_t inc) {
+    // 从 SDS 字符串的头部获取存储的标志位
     unsigned char flags = s[-1];
-    switch(flags&SDS_TYPE_MASK) {
+
+    // 根据标志位的类型来决定如何增加长度
+    switch(flags & SDS_TYPE_MASK) {
         case SDS_TYPE_5:
-            {
-                unsigned char *fp = ((unsigned char*)s)-1;
-                unsigned char newlen = SDS_TYPE_5_LEN(flags)+inc;
-                *fp = SDS_TYPE_5 | (newlen << SDS_TYPE_BITS);
-            }
+        {
+            // 对于 SDS_TYPE_5 类型，通过指针运算获取标志位的地址，并更新长度信息
+            unsigned char *fp = ((unsigned char*)s) - 1;
+            unsigned char newlen = SDS_TYPE_5_LEN(flags) + inc;
+            *fp = SDS_TYPE_5 | (newlen << SDS_TYPE_BITS);
+        }
             break;
         case SDS_TYPE_8:
             SDS_HDR(8,s)->len += inc;
@@ -183,7 +248,14 @@ static inline void sdsinclen(sds s, size_t inc) {
 }
 
 /* sdsalloc() = sdsavail() + sdslen() */
+/**
+ * 计算 SDS 字符串的总分配空间大小
+ *
+ * @param s SDS 字符串
+ * @return SDS 字符串的总分配空间大小
+ */
 static inline size_t sdsalloc(const sds s) {
+    // 从 SDS 字符串的头部获取存储的标志位
     unsigned char flags = s[-1];
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
@@ -200,8 +272,17 @@ static inline size_t sdsalloc(const sds s) {
     return 0;
 }
 
+/**
+ * 设置 SDS 字符串的总分配空间大小
+ *
+ * @param s SDS 字符串
+ * @param newlen 新的总分配空间大小
+ */
 static inline void sdssetalloc(sds s, size_t newlen) {
+    // 从 SDS 字符串的头部获取存储的标志位
     unsigned char flags = s[-1];
+
+    // 根据标志位的类型来决定如何设置新的总分配空间大小
     switch(flags&SDS_TYPE_MASK) {
         case SDS_TYPE_5:
             /* Nothing to do, this type has no total allocation info. */
