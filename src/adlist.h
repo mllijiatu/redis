@@ -32,26 +32,30 @@
 #define __ADLIST_H__
 
 /* Node, List, and Iterator are the only data structures used currently. */
-
+// 节点（listNode）、迭代器（listIter）和链表本身（list）的结构体
+// 结点结构体定义
 typedef struct listNode {
-    struct listNode *prev;
-    struct listNode *next;
-    void *value;
+    struct listNode *prev;  // 指向前一个结点的指针
+    struct listNode *next;  // 指向后一个结点的指针
+    void *value;            // 存储结点值的指针，使用 void* 表示通用指针类型
 } listNode;
 
+// 迭代器结构体定义
 typedef struct listIter {
-    listNode *next;
-    int direction;
+    listNode *next;  // 指向下一个结点的指针
+    int direction;   // 迭代方向，1 表示正向，-1 表示反向
 } listIter;
 
+// 链表结构体定义
 typedef struct list {
-    listNode *head;
-    listNode *tail;
-    void *(*dup)(void *ptr);
-    void (*free)(void *ptr);
-    int (*match)(void *ptr, void *key);
-    unsigned long len;
+    listNode *head;          // 指向链表头结点的指针
+    listNode *tail;          // 指向链表尾结点的指针
+    void *(*dup)(void *ptr); // 复制结点值的函数指针
+    void (*free)(void *ptr); // 释放结点值的函数指针
+    int (*match)(void *ptr, void *key);  // 比较结点值和键的函数指针
+    unsigned long len;       // 链表长度
 } list;
+
 
 /* Functions implemented as macros */
 #define listLength(l) ((l)->len)

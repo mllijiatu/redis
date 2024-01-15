@@ -80,19 +80,21 @@ typedef struct dictType {
 #define DICTHT_SIZE(exp) ((exp) == -1 ? 0 : (unsigned long)1<<(exp))
 #define DICTHT_SIZE_MASK(exp) ((exp) == -1 ? 0 : (DICTHT_SIZE(exp))-1)
 
+// 字典结构体定义
 struct dict {
-    dictType *type;
+    dictType *type;           // 指向字典类型的指针
 
-    dictEntry **ht_table[2];
-    unsigned long ht_used[2];
+    dictEntry **ht_table[2];  // 两个哈希表，用于实现渐进式rehash
+    unsigned long ht_used[2];  // 两个哈希表已使用的槽位数
 
-    long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+    long rehashidx;           // 如果 rehashidx == -1，表示没有进行渐进式rehash
 
-    /* Keep small vars at end for optimal (minimal) struct padding */
-    int16_t pauserehash; /* If >0 rehashing is paused (<0 indicates coding error) */
-    signed char ht_size_exp[2]; /* exponent of size. (size = 1<<exp) */
-    void *metadata[];
+    // 保持小变量在最后以实现最小的结构填充
+    int16_t pauserehash;       // 如果 >0，表示rehash暂停（<0 表示编码错误）
+    signed char ht_size_exp[2];  // 哈希表大小的指数。大小为 1<<exp
+    void *metadata[];         // 用于存储字典的元数据
 };
+
 
 /* If safe is set to 1 this is a safe iterator, that means, you can call
  * dictAdd, dictFind, and other functions against the dictionary even while

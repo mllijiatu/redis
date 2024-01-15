@@ -60,16 +60,18 @@ static dictResizeEnable dict_can_resize = DICT_RESIZE_ENABLE;
 static unsigned int dict_force_resize_ratio = 5;
 
 /* -------------------------- types ----------------------------------------- */
+// 字典条目结构体定义
 struct dictEntry {
-    void *key;
+    void *key;  // 存储条目键的指针
     union {
-        void *val;
-        uint64_t u64;
-        int64_t s64;
-        double d;
+        void *val;     // 存储条目值的指针
+        uint64_t u64;   // 64位无符号整数
+        int64_t s64;    // 64位有符号整数
+        double d;       // 双精度浮点数
     } v;
-    struct dictEntry *next;     /* Next entry in the same hash bucket. */
+    struct dictEntry *next;  // 下一个在相同哈希桶中的条目
 };
+
 
 typedef struct {
     void *key;
